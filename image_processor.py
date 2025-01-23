@@ -5,10 +5,10 @@ from PIL import Image
 
 
 # load folder names
-def get_folder_names(directory) -> list[str]:
+def get_folder_names(directory: str) -> list[str]:
     return [folder for folder in os.listdir(directory) if os.path.isdir(os.path.join(directory, folder))]
 
-def process_images(directory) -> None:
+def process_images(directory: str, normalize_style: int, save_directory) -> None:
     folder_names: list[str] = get_folder_names(directory)
     # define min and max values
     min_width: int = 999999999
@@ -22,80 +22,83 @@ def process_images(directory) -> None:
     average_height: int = 0
 
     # iterate over the folders to check the image dimensions
-    for folder in tqdm(folder_names):
-        folder_path: str = os.path.join(directory, folder)
+    # for folder in tqdm(folder_names):
+    #     folder_path: str = os.path.join(directory, folder)
 
-        for file_name in os.listdir(folder_path):
-            file_path: str = os.path.join(folder_path, file_name)
+    for file_name in os.listdir(directory):
+        file_path: str = os.path.join(directory, file_name)
 
-            if file_name.lower().endswith((".jpg", ".png", ".tiff", ".jpeg", ".bmp")):
-                try:
-                    with Image.open(file_path) as img:
-                        counter += 1
-                        width, height = img.size
+        if file_name.lower().endswith((".jpg", ".png", ".tiff", ".jpeg", ".bmp")):
+            try:
+                with Image.open(file_path) as img:
+                    counter += 1
+                    width, height = img.size
 
-                        average_width += width
-                        average_height += height
+                    average_width += width
+                    average_height += height
 
-                        if width < min_width:
-                            min_width = width
-                        if height < min_height:
-                            min_height = height
-                        if width > max_width:
-                            max_width = width
-                        if height > max_height:
-                            max_height = height
-                            
-                except Exception as e:
-                    print(f"Error loading image {file_name}: {e}")
+                    if width < min_width:
+                        min_width = width
+                    if height < min_height:
+                        min_height = height
+                    if width > max_width:
+                        max_width = width
+                    if height > max_height:
+                        max_height = height
+                        
+            except Exception as e:
+                print(f"Error loading image {file_name}: {e}")
 
     print(f"min width= {min_width}, min height= {min_height}")
     print(f"max width= {max_width}, max height= {max_height}")
-    print(f"average width= {average_width / counter}, average height= {average_height / counter}")
+    if counter > 0:
+        print(f"average width= {average_width / counter}, average height= {average_height / counter}")
 
     target_size: tuple[int] = (min_width, min_height)
 
-    if min_width == max_width and min_height == max_height:
-        if not os.path.exists(directory + "/processed_images"):
-            os.mkdir(directory + "/processed_images")
-        for folder in tqdm(folder_names):
-            folder_path: str = os.path.join(directory, folder)
+    # if min_width == max_width and min_height == max_height:
+        # if not os.path.exists(directory + "/processed_images"):
+        #     os.mkdir(directory + "/processed_images")
+    # for folder in tqdm(folder_names):
+    #     folder_path: str = os.path.join(directory, folder)
 
-            for file_name in os.listdir(folder_path):
-                file_path: str = os.path.join(folder_path, file_name)
-                if file_name.lower().endswith((".jpg", ".png", ".tiff", ".jpeg", ".bmp")):
-                    try:
-                        with Image.open(file_path) as image:
-                            # resize image
-                            image: Image = image.resize(target_size, Image.Resampling.LANCZOS)
-                            # normalize image
-                            image_array: np.array = np.array(image, dtype=np.float32)
+    for file_name in os.listdir(directory):
+        file_path: str = os.path.join(directory, file_name)
+        if file_name.lower().endswith((".jpg", ".png", ".tiff", ".jpeg", ".bmp")):
+            try:
+                with Image.open(file_path) as image:
+                    # resize image
+                    image: Image = image.resize(target_size, Image.Resampling.LANCZOS)
+                    # normalize image
+                    image_array: np.array = np.array(image, dtype=np.float32)
 
-                            if len(image_array.shape) == 3:
-                                for channel in range(image_array.shape[2]):
-                                    min_val = np.min(image_array[:, :, channel])
-                                    max_val = np.max(image_array[:, :, channel])
-                                    image_array[:, :, channel] = (image_array[:, :, channel] - min_val) / (max_val - min_val)
+                    if normalize_style == 1:
+                        for channel in range(image_array.shape[2]):
+                            min_val = np.min(image_array[:, :, channel])
+                            max_val = np.max(image_array[:, :, channel])
+                            image_array[:, :, channel] = (image_array[:, :, channel] - min_val) / (max_val - min_val)
 
-                            else:
-                                min_val = np.min(image_array)
-                                max_val = np.max(image_array)
-                                image_array = (image_array - min_val) / (max_val - min_val)
+                    else:
+                        min_val = np.min(image_array)
+                        max_val = np.max(image_array)
+                        image_array = (image_array - min_val) / (max_val - min_val)
 
-                            # save image
-                            normalized_image_uint8 = (image_array * 255).astype(np.uint8)
-                            normalized_image_pil = Image.fromarray(normalized_image_uint8)
-                            normalized_image_pil.save(directory + "/processed_images/" + file_name)
-                      
-                    except Exception as e:
-                        print(f"Error loading image {file_name}: {e}")
+                    # save image
+                    normalized_image_uint8 = (image_array * 255).astype(np.uint8)
+                    normalized_image_pil = Image.fromarray(normalized_image_uint8)
+                    normalized_image_pil.save(save_directory + file_name)
+                
+            except Exception as e:
+                print(f"Error loading image {file_name}: {e}")
 
-    else:
-        print("Images must have the same width and the same height.")
+    # else:
+    #     print("Images must have the same width and the same height.")
 
     print("Done")
 
 
 if __name__ == "__main__":
-    directory = "D:/Programmieren/Datasets/LFW/lfw-deepfunneled/lfw-deepfunneled"
-    process_images(directory)
+    directory: str = "D:/Programmieren/Datasets/Real_and_Fake_faces/real_and_fake_face/training_real/"
+    save_directory: str = "D:/Programmieren/Datasets/Real_and_Fake_faces/Training/real/"  # put one / at the end
+    normalize_style: int = 0  # 0 = Normalize over all channels, 1 = Normalize over each channel separate
+    process_images(directory, normalize_style, save_directory)
