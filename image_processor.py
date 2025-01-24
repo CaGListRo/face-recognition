@@ -54,7 +54,7 @@ def process_images(directory: str, normalize_style: int, save_directory) -> None
     if counter > 0:
         print(f"average width= {average_width / counter}, average height= {average_height / counter}")
 
-    target_size: tuple[int] = (min_width, min_height)
+    target_size: tuple[int] = (min(128, min_width), min(128, min_height))
 
     # if min_width == max_width and min_height == max_height:
         # if not os.path.exists(directory + "/processed_images"):
@@ -98,7 +98,7 @@ def process_images(directory: str, normalize_style: int, save_directory) -> None
 
 
 if __name__ == "__main__":
-    directory: str = "D:/Programmieren/Datasets/Real_and_Fake_faces/real_and_fake_face/training_real/"
-    save_directory: str = "D:/Programmieren/Datasets/Real_and_Fake_faces/Training/real/"  # put one / at the end
+    directory: str = "D:/Programmieren/Datasets/Real_and_Fake_faces/real_and_fake_face/training_fake/"
+    save_directory: str = "D:/Programmieren/Datasets/Real_and_Fake_faces/Processed/fake/"  # put one / at the end
     normalize_style: int = 0  # 0 = Normalize over all channels, 1 = Normalize over each channel separate
     process_images(directory, normalize_style, save_directory)
